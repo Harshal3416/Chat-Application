@@ -2,6 +2,8 @@ const path = require('path')
 const http = require('http')
 const express = require('express')
 const socketio = require('socket.io')
+const Filter = require('bad-words')
+// bad-words is used to filter bad words
 
 const app = express()
 const server = http.createServer(app)
@@ -34,14 +36,28 @@ io.on('connection', (socket)=>{
     // broadcast will emit  message to all the other clients, except itself
     socket.broadcast.emit('msg', 'New User')
 
-    socket.on('textMsg', (msg)=>{
-        console.log(msg)
+    socket.on('textMsg', (msg, callback)=>{
+
+        const filter = new Filter()
+
+        if(filter.isProfane(msg)){
+            return callback('Profanity is not allowed')
+        }
+        
         io.emit('msg', msg)
+
+        // callback message helps to send a acknowledgement
+        callback('Delivered')
     })
 
     // disconnect runs when the user is disconnected
     socket.on('disconnect', ()=>{
         io.emit('msg', 'User left the group')
+    })
+
+    socket.on('sendLocation', (coords, callback)=>{
+        io.emit('msg', `https://google.com/maps?q=${coords.latitude},${coords.longitude}`)
+        callback('Location received')
     })
 })
 

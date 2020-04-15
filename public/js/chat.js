@@ -14,5 +14,32 @@ document.querySelector('#msg-form').addEventListener('submit', (e)=> {
 
     const message = e.target.elements.message.value
  
-    socket.emit('textMsg', message)
+    socket.emit('textMsg', message, (error)=>{
+        // error is an ack message from server
+
+        if(error){
+            return console.log(error)
+        }
+
+        console.log('This message was delivered..!')
+    })
+})
+
+document.querySelector('#sendLocation').addEventListener('click', ()=>{
+    if(!navigator.geolocation){
+        return alert('Geolocation is not supported by your browser')
+    }
+
+    console.log('location')
+    navigator.geolocation.getCurrentPosition((position)=>{
+
+        // console.log()
+        socket.emit('sendLocation', {
+            latitude : position.coords.latitude,
+            longitude :  position.coords.longitude
+        }, (message) =>{
+            console.log(message)
+        })
+    })
+    
 })
