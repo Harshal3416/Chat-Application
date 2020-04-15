@@ -23,21 +23,17 @@ const locationTemplate = document.querySelector('#location-template').innerHTML
 
 socket.on('msg', (msg)=> {
     console.log(msg)
+    // Mustach helps us to user variables in HTML in the form of string interpolation
     const html = Mustache.render(mesageTemplate, {
-        msg
+        msg: msg.text,
+        creeatedAt: moment(msg.creeatedAt).format("MMM Do YY, h:mm:ss a")
     })
+    // https://momentjs.com/ --> moment library
 
     // insert ihe content of 'html' in $messages element
     $messages.insertAdjacentHTML('beforeend', html)
 })
 
-socket.on('locationMessage', (url)=>{
-    console.log('URL', url)
-    const html = Mustache.render(locationTemplate, {
-        url
-    })
-    $messages.insertAdjacentHTML('beforeend', html)
-})
 
 $mesageForm.addEventListener('submit', (e)=> {
     e.preventDefault()
@@ -53,12 +49,19 @@ $mesageForm.addEventListener('submit', (e)=> {
         $mesageFormInput.focus()
 
         // error is an ack message from server
-        if(error){
-            return console.log(error)
-        }
-
+        if(error) return console.log(error)
+        
         console.log('This message was delivered..!')
     })
+})
+
+socket.on('locationMessage', (msg)=>{
+    console.log('URL', msg.url)
+    const html = Mustache.render(locationTemplate, {
+        url: msg.url,
+        creeatedAt: moment(msg.creeatedAt).format("MMM Do YY, h:mm:ss a")
+     })
+    $messages.insertAdjacentHTML('beforeend', html)
 })
 
 $location.addEventListener('click', ()=>{
@@ -72,9 +75,7 @@ $location.addEventListener('click', ()=>{
     console.log('location')
     navigator.geolocation.getCurrentPosition((position)=>{
 
-        // console.log()
-        socket.emit('sendLocation', {           
-
+        socket.emit('sendLocation', {
             latitude : position.coords.latitude,
             longitude :  position.coords.longitude
         }, (message) =>{

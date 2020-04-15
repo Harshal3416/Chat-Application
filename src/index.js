@@ -5,6 +5,8 @@ const socketio = require('socket.io')
 const Filter = require('bad-words')
 // bad-words is used to filter bad words
 
+const { generateMessage, generateLocation } = require('./utils/messages')
+
 const app = express()
 const server = http.createServer(app)
 const io = socketio(server)
@@ -23,6 +25,8 @@ app.use(express.static(publicDirectoryPath))
 io.on('connection', (socket)=>{
     console.log('new socket connection')
 
+    socket.emit('msg', generateMessage('Welcome..!!'))
+
     // socket.emit('countUpdate', count)
 
     // socket.on('increament', ()=>{
@@ -34,7 +38,7 @@ io.on('connection', (socket)=>{
     // })
 
     // broadcast will emit  message to all the other clients, except itself
-    socket.broadcast.emit('msg', 'New User')
+    socket.broadcast.emit('msg', generateMessage('New User..!!'))
 
     socket.on('textMsg', (msg, callback)=>{
 
@@ -44,7 +48,7 @@ io.on('connection', (socket)=>{
             return callback('Profanity is not allowed')
         }
         
-        io.emit('msg', msg)
+        io.emit('msg', generateMessage(msg))
 
         // callback message helps to send a acknowledgement
         callback('Delivered')
@@ -52,11 +56,11 @@ io.on('connection', (socket)=>{
 
     // disconnect runs when the user is disconnected
     socket.on('disconnect', ()=>{
-        io.emit('msg', 'User left the group')
+        io.emit('msg', generateMessage('User left the group'))
     })
 
     socket.on('sendLocation', (coords, callback)=>{
-        io.emit('locationMessage', `https://google.com/maps?q=${coords.latitude},${coords.longitude}`)
+        io.emit('locationMessage', generateLocation(`https://google.com/maps?q=${coords.latitude},${coords.longitude}`))
         callback('Location Shared')
     })
 })
