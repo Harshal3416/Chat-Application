@@ -57,7 +57,7 @@ io.on('connection', (socket)=>{
 
     socket.on('sendLocation', (coords, callback)=>{
         io.emit('msg', `https://google.com/maps?q=${coords.latitude},${coords.longitude}`)
-        callback('Location received')
+        callback('Location Shared')
     })
 })
 
