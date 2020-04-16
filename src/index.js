@@ -6,6 +6,7 @@ const Filter = require('bad-words')
 // bad-words is used to filter bad words
 
 const { generateMessage, generateLocation } = require('./utils/messages')
+const { addUser, removedUser, getUser, getUsersInRoom } = require('./utils/users')
 
 const app = express()
 const server = http.createServer(app)
@@ -25,30 +26,40 @@ app.use(express.static(publicDirectoryPath))
 io.on('connection', (socket)=>{
     console.log('new socket connection')
 
-    socket.emit('msg', generateMessage('Welcome..!!'))
+    // options = { username, room}
+    socket.on('join', (options, callback) => {
 
-    // socket.emit('countUpdate', count)
+        console.log("options", options)
 
-    // socket.on('increament', ()=>{
-    //     count++
+        const { error, user } = addUser({ id: socket.id, ...options})
 
-    //     // socket.emit will emit data for a particular client
-    //     // emits data to all the connection(client)
-    //     io.emit('countUpdate', count)
-    // })
+        if(error){
+            return callback(error)
+        }
 
-    // broadcast will emit  message to all the other clients, except itself
-    socket.broadcast.emit('msg', generateMessage('New User..!!'))
+        socket.join(user.room)
 
-    socket.on('textMsg', (msg, callback)=>{
+        socket.emit('msg', generateMessage('Admin', `Welcome..!!`))
 
+        // broadcast will emit  message to all the other clients, except itself
+        socket.broadcast.to(user.room).emit('msg', generateMessage('Admin', `${user.username} joined the room`))
+
+        io.to(user.room).emit('roomdata', {
+            room: user.room,
+            users: getUsersInRoom(user.room)
+        })
+        callback()
+    })
+
+    socket.on('sendMessage', (msg, callback)=>{
+        const user = getUser(socket.id)
         const filter = new Filter()
 
         if(filter.isProfane(msg)){
             return callback('Profanity is not allowed')
         }
         
-        io.emit('msg', generateMessage(msg))
+        io.to(user.room).emit('msg', generateMessage(user.username, msg))
 
         // callback message helps to send a acknowledgement
         callback('Delivered')
@@ -56,11 +67,21 @@ io.on('connection', (socket)=>{
 
     // disconnect runs when the user is disconnected
     socket.on('disconnect', ()=>{
-        io.emit('msg', generateMessage('User left the group'))
+        const user = removedUser(socket.id)
+
+        if(user){
+            io.to(user.room).emit('msg', generateMessage('Admin', `${user.username} has left the chat`))
+
+            io.to(user.room).emit('roomdata', {
+                room: user.room,
+                users: getUsersInRoom(user.room)
+            })
+        }        
     })
 
     socket.on('sendLocation', (coords, callback)=>{
-        io.emit('locationMessage', generateLocation(`https://google.com/maps?q=${coords.latitude},${coords.longitude}`))
+        const user = getUser(socket.id)
+        io.to(user.room).emit('locationMessage', generateLocation(user.username, `https://google.com/maps?q=${coords.latitude},${coords.longitude}`))
         callback('Location Shared')
     })
 })
